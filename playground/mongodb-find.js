@@ -31,8 +31,3 @@ MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, db) => {
 
     // db.close();
 });
-
-// Challenge
-//  1. query users with the name you provided in the script
-//  2. then print them to the screen
-//  3. based on current db, I should get 3 results back
