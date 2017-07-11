@@ -28,6 +28,14 @@ app.post('/todos', (req, res) => {
     });
 });
 
+app.get('/todos', (req, res) => {
+    Todo.find().then((todos) => {
+        res.send({todos}); // by sending an object back, instead of an array, we're providing flexibility in the future
+    }, (error) => {
+        res.status(400).send(error);
+    });
+});
+
 app.listen(3000, () => {
     console.log('Started on port 3000');
 });
