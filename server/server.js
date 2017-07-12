@@ -40,13 +40,10 @@ app.get('/todos', (req, res) => {
 // GET /todos/dynamicIDintake
 app.get('/todos/:id', (req, res) => {
     var id = req.params.id;
-    // validate id with .isValid()
-    // if not valid, stop execution and pass 404, send back empty body
     if (!ObjectID.isValid(id)) {
         console.log('Not a valid ID');
         return res.status(404).send();
     }
-    // findById()
     Todo.findById(id).then((todo) => {
         if (!todo) {
             console.log('query: valid, but not present in DB');
@@ -57,15 +54,6 @@ app.get('/todos/:id', (req, res) => {
     }).catch((error) => {
         return res.status(400).send();
     });
-        // success
-            // if todo - send it back
-            // if no todo, call succeeds, but no item
-        // error
-            // 400 - send back empty body back
-    // TEST all 3 scenarios:
-        // 1. valid id that is present in db
-        // 2. valid id, but is NOT present in db
-        // 3. non valid id
 });
 
 
