@@ -12,7 +12,7 @@ const {Todo} = require('./../models/todo');
 // stable and predictable
 // SEED DATA
 const todos = [{
-    text: 'Firest test todo'
+    text: 'First test todo'
 }, {
     text: 'Second test todo'
     }
