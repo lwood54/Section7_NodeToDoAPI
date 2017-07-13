@@ -9,6 +9,8 @@ var {User} = require('./models/user');
 const {ObjectID} = require('mongodb');
 
 var app = express();
+// creating variable for Heroku to set the PORT
+const port = process.env.PORT || 3000;
 
 // express middleware:
     // the return value from this method is a function, which is the middleware
@@ -58,8 +60,8 @@ app.get('/todos/:id', (req, res) => {
 
 
 
-app.listen(3000, () => {
-    console.log('Started on port 3000');
+app.listen(port, () => {
+    console.log(`Started up at port ${port}`);
 });
 
 module.exports = {app};
