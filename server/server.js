@@ -1,12 +1,14 @@
 // main file that will be run when app is ready to run
-var express = require('express');
+const express = require('express');
 // body-parser takes your JSON and converts it into an object
-var bodyParser = require('body-parser');
+const bodyParser = require('body-parser');
+const {ObjectID} = require('mongodb');
+const _ = require('lodash');
 
 var {mongoose} = require('./db/mongoose.js');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
-const {ObjectID} = require('mongodb');
+
 
 var app = express();
 // creating variable for Heroku to set the PORT
@@ -80,6 +82,34 @@ app.delete('/todos/:id', (req, res) => {
         }
         console.log("removed by id successful");
         return res.send({todo});
+    }).catch((error) => {
+        return res.status(400).send();
+    });
+});
+
+app.patch('/todos/:id', (req, res) => {
+    var id = req.params.id;
+    // we are using a 'lodash' method that will allow us to 'pick' only the specific things we want off
+    // of the request that the user will be allowed to change.
+    var body = _.pick(req.body, ['text', 'completed']);
+    if (!ObjectID.isValid(id)) {
+        console.log("non valid id response sent");
+        return res.status(404).send();
+    }
+
+    // check completed value and set completedAt property
+    if (_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+        if (!todo) {
+            return res.status(404).send();
+        }
+        res.send({todo});
     }).catch((error) => {
         return res.status(400).send();
     });
