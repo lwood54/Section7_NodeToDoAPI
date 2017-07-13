@@ -14,10 +14,12 @@ const {Todo} = require('./../models/todo');
 // SEED DATA
 const todos = [{
     _id: new ObjectID(),
-    text: 'First test todo'
+    text: 'First test todo',
 }, {
     _id: new ObjectID(),
-    text: 'Second test todo'
+    text: 'Second test todo',
+    completed: true,
+    completedAt: 333
     }
 ];
 // now we have to use a mongoose method called 'insertMany()'
@@ -32,22 +34,22 @@ describe('POST /todos', () => {
         var text = 'Test todo text';
 
         request(app)
-        .post('/todos')
-        .send({text})
-        .expect(200)
-        .expect((res) => {
-            expect(res.body.text).toBe(text);
-        })
-        .end((err, res) =>{
-            if (err) {
-                return done(err);
-            }
-            Todo.find({text: text}).then((todos) => { // NOTE: I changed it from {text} to {text: text} for clarity
-                expect(todos.length).toBe(1);           // but ES6 lets us do {text} when the key and value are the same
-                expect(todos[0].text).toBe(text);
-                done();
-            }).catch((error) => done(e));
-        });
+            .post('/todos')
+            .send({text})
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.text).toBe(text);
+            })
+            .end((err, res) =>{
+                if (err) {
+                    return done(err);
+                }
+                Todo.find({text: text}).then((todos) => { // NOTE: I changed it from {text} to {text: text} for clarity
+                    expect(todos.length).toBe(1);           // but ES6 lets us do {text} when the key and value are the same
+                    expect(todos[0].text).toBe(text);
+                    done();
+                }).catch((error) => done(e));
+            });
     });
 
     it('should not create todo with invalid body data', (done) => {
@@ -145,5 +147,64 @@ describe('DELETE /todos/:id', () => {
             .delete('/todos/123abc')
             .expect(404)
             .end(done);
+    });
+});
+
+describe('PATCH /todos/:id', () => {
+    //take 1st todo and change text to something else
+    it('should update todo', (done) => {
+        // grab id of first item
+        // update text, set completed to true
+        // assert that you get 200 back
+        // custom assertion, response body has a text property = text we sent in
+        // verify that completed is true
+        // verify that completedAt is a number  use .toBeA()
+        var hexId = todos[0]._id.toHexString();
+        var text = "updated with this text";
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                text: text,
+                completed: true
+            })
+            // .send({
+            //     completed: true,
+            //     text
+            // })
+            .expect(200)
+            // .expect(function(res) {
+            //     console.log(res.body.todo.text);
+            //     expect(res.body.todo.text).toBe(text);
+            //     expect(res.body.todo.completed).toBe(true);
+            //     expect(res.body.todo.completedAt).toBeA('number');
+            // })
+            .expect((res) => {
+                expect(res.body.todo.text).toBe(text);
+                expect(res.body.todo.completed).toBe(true);
+                expect(res.body.todo.completedAt).toBeA('number');
+            })
+            .end(done);
+    });
+
+    it('should clear completedAt when todo is not completed', (done) => {
+        // grab id of second todo item
+        var hexId = todos[1]._id.toHexString();
+        // update text to something different, set completed to false
+        var text = "new text here";
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                text,
+                completed: false
+            })
+            .expect(200)
+            .expect(function(res) {
+                expect(res.body.todo.text).toBe(text);
+                expect(res.body.todo.completed).toBe(false);
+                expect(res.body.todo.completedAt).toBe(null);
+            })
+            .end(done);
+        // expect 200
+        // text is changed, completed is now false, completedAt is null
     });
 });
