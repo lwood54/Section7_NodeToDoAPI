@@ -7,13 +7,11 @@ var UserSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        minlength: 1,
         trim: true,
+        minlength: 1,
         unique: true,
-        validate: {                 // we could simply put validator: validator.isEmail here
-            validator: (value) => {
-                return validator.isEmail(value);
-            },
+        validate: {
+            validator: validator.isEmail,
             message: '{VALUE} is not a valid email'
         }
     },
@@ -34,6 +32,8 @@ var UserSchema = new mongoose.Schema({
     }]
 });
 
+// UserSchema.methods is an object. We can add any method we want onto this object.
+// These would be our INSTANCE methods (vs MODEL methods)
 UserSchema.methods.toJSON = function() {
     var user = this;
     var userObject = user.toObject();
@@ -41,18 +41,35 @@ UserSchema.methods.toJSON = function() {
     return _.pick(userObject, ['_id', 'email']);
 };
 
-// UserSchema.methods is an object. We can add any method we want onto this object.
-// These would be our 'instance' methods. (vs )
-UserSchema.methods.generateAuthToken = function () {
+UserSchema.methods.generateAuthToken = function() {
     var user = this;
     var access = 'auth';
     var token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
 
     user.tokens.push({access, token});
 
-    // we are returning the value of a token return. The innermose return executes first.
     return user.save().then(() => {
         return token;
+    });
+};
+
+// .statics is kind of like using methods, but everything you add on to it is
+// a MODEL method vs the INSTANCE methods that are created with .method
+// jwt.verify() || throws an error if anything goes wrong.
+UserSchema.statics.findByToken = function(token) {
+    var User = this;
+    var decoded;  // store the decoded jwt values, store return values from jwt.verify()
+
+    try {
+        decoded = jwt.verify(token, 'abc123');
+    } catch (error) {
+        return Promise.reject();
+    }
+
+    return User.findOne({
+        '_id': decoded._id,
+        'tokens.token': token,
+        'tokens.access': 'auth'
     });
 };
 
