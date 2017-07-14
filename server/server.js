@@ -1,3 +1,4 @@
+require('./config/config.js');
 // main file that will be run when app is ready to run
 const express = require('express');
 // body-parser takes your JSON and converts it into an object
