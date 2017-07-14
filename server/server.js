@@ -127,10 +127,13 @@ app.post('/users', (req, res) => {
         password: body.password
     });
 
-    user.save().then((doc) => {
-        res.send(doc);
-    }, (err) => {
-        res.status(400).send(err);
+    user.save().then(() => {
+        return user.generateAuthToken();
+        // res.send(user);
+    }).then((token) => {
+        res.header('x-auth', token).send(user);
+    }).catch((error) => {
+        res.status(400).send(error);
     });
 });
 
