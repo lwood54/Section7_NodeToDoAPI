@@ -116,6 +116,52 @@ app.patch('/todos/:id', (req, res) => {
     });
 });
 
+
+////////////////////////////// USERS //////////////////////
+
+// POST /users
+app.post('/users', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
+    var user = new User({   // we could have just put var user = new User(body) since we already made an object with JUST email and password
+        email: body.email,
+        password: body.password
+    });
+
+    user.save().then((doc) => {
+        res.send(doc);
+    }, (err) => {
+        res.status(400).send(err);
+    });
+});
+
+// GET /users
+app.get('/users', (req, res) => {
+    User.find().then((users) => {
+        res.send({users});
+    }, (error) => {
+        res.status(400).send(error);
+    });
+});
+
+// GET /todos/dynamicIDintake
+app.get('/users/:id', (req, res) => {
+    var id = req.params.id;
+    if (!ObjectID.isValid(id)) {
+        console.log('Not a valid ID');
+        return res.status(404).send();
+    }
+    User.findById(id).then((user) => {
+        if (!user) {
+            console.log('query: valid, but not present in DB');
+            return res.status(404).send('No item with that ID');
+        }
+        console.log('query: valid and returned result');
+        res.send({user});
+    }).catch((error) => {
+        return res.status(400).send();
+    });
+});
+
 app.listen(port, () => {
     console.log(`Started up at port ${port}`);
 });
