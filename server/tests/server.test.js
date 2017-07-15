@@ -238,6 +238,8 @@ describe('POST /users', () => {
                     expect(user).toExist();
                     expect(user.password).toNotBe(password);
                     done();
+                }).catch(function(error) {
+                    done(error);
                 });
             });
     });
@@ -264,5 +266,58 @@ describe('POST /users', () => {
             .send({email, password})
             .expect(400)
             .end(done);
+    });
+});
+
+describe('POST /users/login', function() {
+    it('should login user and return auth token', function(done) {
+        request(app)
+            .post('/users/login')
+            .send({
+                email: users[1].email,
+                password: users[1].password
+            })
+            .expect(200)
+            .expect(function(res) {
+                expect(res.headers['x-auth']).toExist();
+            })
+            .end(function(error, res) {
+                if (error) {
+                    return done(error);
+                }
+                User.findById(users[1]._id).then(function(user) {
+                    expect(user.tokens[0]).toInclude({
+                        access: 'auth',
+                        token: res.headers['x-auth']
+                    });
+                    done();
+                }).catch(function(error) {
+                    done(error);
+                });
+            });
+    });
+
+    it('should reject invalid login', function(done) {
+        request(app)
+            .post('/users/login')
+            .send({
+                email: users[1].email,
+                password: 'huh?'
+            })
+            .expect(400)
+            .expect(function(res) {
+                expect(res.headers['x-auth']).toNotExist();
+            })
+            .end(function(error, res) {
+                if (error) {
+                    return done(error);
+                }
+                User.findById(users[1]._id).then(function(user) {
+                    expect(user.tokens.length).toEqual(0);
+                    done();
+                }).catch(function(error) {
+                    done(error);
+                });
+            });
     });
 });
