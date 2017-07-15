@@ -54,6 +54,15 @@ UserSchema.methods.generateAuthToken = function() {
     });
 };
 
+UserSchema.methods.removeToken = function(token) {
+    var user = this;
+    return user.update({
+        $pull: {        // a MongoDB operator
+            tokens: {token}
+        }
+    });
+};
+
 // .statics is kind of like using methods, but everything you add on to it is
 // a MODEL method vs the INSTANCE methods that are created with .method
 // jwt.verify() || throws an error if anything goes wrong.
