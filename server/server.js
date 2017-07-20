@@ -42,13 +42,16 @@ app.get('/todos', authenticate, (req, res) => {
 });
 
 // GET /todos/dynamicIDintake
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
     var id = req.params.id;
     if (!ObjectID.isValid(id)) {
         console.log('Not a valid ID');
         return res.status(404).send();
     }
-    Todo.findById(id).then((todo) => {
+    Todo.findOne({
+        _id: id,
+        _creator: req.user._id
+    }).then((todo) => {
         if (!todo) {
             console.log('query: valid, but not present in DB');
             return res.status(404).send('No item with that ID');
@@ -60,22 +63,16 @@ app.get('/todos/:id', (req, res) => {
     });
 });
 
-app.delete('/todos/:id', (req, res) => {
-    // get the id
-    // validate the id, if not valid, return a 404
+app.delete('/todos/:id', authenticate, (req, res) => {
     var id = req.params.id;
     if (!ObjectID.isValid(id)) {
         console.log("non valid id response sent");
         return res.status(404).send();
     }
-
-    // remove todo by id
-        // success
-            // if no doc, send 404
-            // if doc, send doc back with 200
-        // error
-            // send 400 with empty body
-    Todo.findByIdAndRemove(id).then((todo) => {
+    Todo.findOneAndRemove({
+        _id: id,
+        _creator: req.user._id
+    }).then((todo) => {
         if (!todo) {
             console.log("valid id, but not in db");
             return res.status(404).send();
@@ -87,10 +84,8 @@ app.delete('/todos/:id', (req, res) => {
     });
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
     var id = req.params.id;
-    // we are using a 'lodash' method that will allow us to 'pick' only the specific things we want off
-    // of the request that the user will be allowed to change.
     var body = _.pick(req.body, ['text', 'completed']);
     if (!ObjectID.isValid(id)) {
         console.log("non valid id response sent");
@@ -105,7 +100,10 @@ app.patch('/todos/:id', (req, res) => {
         body.completedAt = null;
     }
 
-    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+    Todo.findOneAndUpdate({
+        _id: id,
+        _creator: req.user._id
+    }, {$set: body}, {new: true}).then((todo) => {
         if (!todo) {
             return res.status(404).send();
         }

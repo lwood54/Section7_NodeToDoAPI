@@ -71,6 +71,7 @@ describe('GET /todos/:id', () => {
     it('should return todo doc', (done) => {
         request(app)
             .get(`/todos/${todos[0]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(todos[0].text);
@@ -78,20 +79,26 @@ describe('GET /todos/:id', () => {
             .end(done);
     });
 
+    it('should not return todo doc created by other user', (done) => {
+        request(app)
+            .get(`/todos/${todos[1]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end(done);
+    });
+
     it('should return a 404 if todo not found', (done) => {
-        // make a request using a real object id, create a new ObjectID, then convert with toHexString()
-        // basically we want to pass a new valid ObjectID, but one that's not in the DB.
-        // make sure you get a 404 back
         request(app)
             .get(`/todos/${new ObjectID().toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
 
     it('should return 404 for non-object ids', (done) => {
-        // pass in /todos/123
         request(app)
             .get('/todos/123')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -103,6 +110,7 @@ describe('DELETE /todos/:id', () => {
 
         request(app)
             .delete(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo._id).toBe(hexId);
@@ -119,11 +127,30 @@ describe('DELETE /todos/:id', () => {
             });
     });
 
+    it('should not remove a todo by another user', (done) => {
+        var hexId = todos[0]._id.toHexString();
+        request(app)
+            .delete(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
+            .expect(404)
+            .end((error, res) => {
+                if (error) {
+                    return done(error);
+                }
+                // query db using findById, toNotExist assertion
+                Todo.findById(hexId).then((todo) => {
+                    expect(todo).toExist();
+                    done();
+                }).catch((error) => done(error));
+            });
+    });
+
     it('should return 404 if todo not found', (done) => {
         var hexId = new ObjectID().toHexString();
 
         request(app)
             .delete(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -131,44 +158,45 @@ describe('DELETE /todos/:id', () => {
     it('should return 404 if object is is invalid', (done) => {
         request(app)
             .delete('/todos/123abc')
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
 });
 
 describe('PATCH /todos/:id', () => {
-    //take 1st todo and change text to something else
     it('should update todo', (done) => {
-        // grab id of first item
-        // update text, set completed to true
-        // assert that you get 200 back
-        // custom assertion, response body has a text property = text we sent in
-        // verify that completed is true
-        // verify that completedAt is a number  use .toBeA()
         var hexId = todos[0]._id.toHexString();
         var text = "updated with this text";
+        // authenticate as first user
         request(app)
             .patch(`/todos/${hexId}`)
             .send({
                 text: text,
                 completed: true
             })
-            // .send({
-            //     completed: true,
-            //     text
-            // })
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
-            // .expect(function(res) {
-            //     console.log(res.body.todo.text);
-            //     expect(res.body.todo.text).toBe(text);
-            //     expect(res.body.todo.completed).toBe(true);
-            //     expect(res.body.todo.completedAt).toBeA('number');
-            // })
             .expect((res) => {
                 expect(res.body.todo.text).toBe(text);
                 expect(res.body.todo.completed).toBe(true);
                 expect(res.body.todo.completedAt).toBeA('number');
             })
+            .end(done);
+    });
+
+    it('should not update todo if wrong user', (done) => {
+        var hexId = todos[1]._id.toHexString();
+        var text = "updated with this text";
+        // authenticate as first user
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                text: text,
+                completed: true
+            })
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
             .end(done);
     });
 
@@ -183,6 +211,7 @@ describe('PATCH /todos/:id', () => {
                 text,
                 completed: false
             })
+            .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect(function(res) {
                 expect(res.body.todo.text).toBe(text);
@@ -289,7 +318,7 @@ describe('POST /users/login', function() {
                     return done(error);
                 }
                 User.findById(users[1]._id).then(function(user) {
-                    expect(user.tokens[0]).toInclude({
+                    expect(user.tokens[1]).toInclude({
                         access: 'auth',
                         token: res.headers['x-auth']
                     });
@@ -316,7 +345,7 @@ describe('POST /users/login', function() {
                     return done(error);
                 }
                 User.findById(users[1]._id).then(function(user) {
-                    expect(user.tokens.length).toEqual(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch(function(error) {
                     done(error);
